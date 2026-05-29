@@ -6,4 +6,5 @@ langchain-huggingface
 chromadb
 sentence-transformers
 pypdf
+pdfplumber
 python-dotenv
