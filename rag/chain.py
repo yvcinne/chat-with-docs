@@ -1,6 +1,6 @@
 import os
 from langchain_groq import ChatGroq
-from langchain.prompts import ChatPromptTemplate
+from langchain_core.prompts import ChatPromptTemplate
 
 
 def get_answer(question: str, store) -> str:
@@ -8,7 +8,7 @@ def get_answer(question: str, store) -> str:
     context = "\n\n".join([doc.page_content for doc in docs])
 
     llm = ChatGroq(
-        model="llama3-8b-8192",
+        model="llama-3.1-8b-instant",
         api_key=os.getenv("GROQ_API_KEY"),
         temperature=0.2,
     )
