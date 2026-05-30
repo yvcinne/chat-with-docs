@@ -6,7 +6,10 @@ def get_embeddings():
     return HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
 
 
-def add_documents(chunks):
-    embeddings = get_embeddings()
-    store = Chroma.from_documents(chunks, embeddings)
+def create_store(chunks):
+    return Chroma.from_documents(chunks, get_embeddings())
+
+
+def add_to_store(store, chunks):
+    store.add_documents(chunks)
     return store

@@ -1,9 +1,10 @@
 import os
 from langchain_groq import ChatGroq
-from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
+from langchain_core.messages import HumanMessage, AIMessage
 
 
-def get_answer(question: str, store) -> str:
+def _build(question: str, store, history: list[dict]):
     docs = store.similarity_search(question, k=4)
     context = "\n\n".join([doc.page_content for doc in docs])
 
@@ -13,18 +14,28 @@ def get_answer(question: str, store) -> str:
         temperature=0.2,
     )
 
-    prompt = ChatPromptTemplate.from_template("""
-You are a helpful assistant. Answer the question based only on the context provided.
-If you cannot find the answer in the context, say "I don't have enough information to answer that."
+    lc_history = []
+    for msg in (history or []):
+        if msg["role"] == "user":
+            lc_history.append(HumanMessage(content=msg["content"]))
+        elif msg["role"] == "assistant":
+            lc_history.append(AIMessage(content=msg["content"]))
 
-Context:
-{context}
-
-Question: {question}
-
-Answer:
-""")
+    prompt = ChatPromptTemplate.from_messages([
+        ("system", (
+            "You are a helpful assistant. Answer the question based only on the context below.\n"
+            "If the answer is not in the context, say \"I don't have enough information to answer that.\"\n\n"
+            "Context:\n{context}"
+        )),
+        MessagesPlaceholder(variable_name="history"),
+        ("human", "{question}"),
+    ])
 
     chain = prompt | llm
-    response = chain.invoke({"context": context, "question": question})
-    return response.content
+    inputs = {"context": context, "history": lc_history, "question": question}
+    return chain, inputs, docs
+
+
+def stream_answer(question: str, store, history: list[dict] = None):
+    chain, inputs, docs = _build(question, store, history)
+    return (chunk.content for chunk in chain.stream(inputs) if chunk.content), docs
